@@ -3,10 +3,11 @@
 #include <string.h>
 #include <time.h>
 
-/* Definindo o n˙mero m·ximo de peÁas na fila */
+/* Definindo o n√∫mero m√°ximo de pe√ßas na fila */
 #define max_peca 5
+#define max_reserva 3
 
-/* Criando estrutura de cada peÁa na fila */
+/* Criando estrutura de cada pe√ßa na fila */
 struct Peca
 {
     char nome[2];
@@ -20,6 +21,14 @@ struct Fila
     int inicio;
     int fim;
     int totalPecas;
+};
+
+/* Criando estrutura da pilha */
+struct Pilha
+{
+    struct Peca pecas[max_reserva];
+    int topo;
+    int totalPecasReservadas;
 };
 
 void limparbuffer()
@@ -36,7 +45,13 @@ void iniciarFila(struct Fila *f)
     f->totalPecas =0;
 }
 
-/* FunÁ„o para mostrar as peÁas da fila */
+void iniciarPilha(struct Pilha *p)
+{
+    p->topo = -1;
+    p->totalPecasReservadas = 0;
+}
+
+/* Fun√ß√£o para mostrar as pe√ßas da fila */
 void mostrarFila(struct Fila *f){
     if (f->totalPecas == 0)
     {
@@ -51,7 +66,23 @@ void mostrarFila(struct Fila *f){
     printf("\n");
 }
 
-/* FunÁ„o para gerar uma peca de formato aleatÛrio */
+/* Fun√ß√£o para mostrar as pe√ßas da pilha */
+void mostrarPilha (struct Pilha *p)
+{
+    if (p->totalPecasReservadas == 0)
+    {
+        printf("Reserva vazia!\n");
+        return;
+    }
+    int i = 0;
+    printf("\Reserva:\n");
+    for (i = p->topo; i >= 0; i--) {
+        printf("[%s, %d]\n", p->pecas[i].nome, p->pecas[i].id);
+    }
+    printf("\n");
+}
+
+/* Fun√ß√£o para gerar uma peca de formato aleat√≥rio */
 struct Peca gerarPeca(int *totalCadastro)
 {
     int tipoPeca = (rand() % 4) + 1;
@@ -75,8 +106,8 @@ struct Peca gerarPeca(int *totalCadastro)
     return novaPeca;
 }
 
-/* FunÁ„o para inserir peÁa na fila */
-void inserirPeca(struct Fila *f, int *totalCadastro)
+/* Fun√ß√£o para inserir pe√ßa na fila */
+void inserirPeca(struct Fila *f, struct Pilha *p, int *totalCadastro)
 {
     if (f->totalPecas == max_peca)
     {
@@ -87,11 +118,12 @@ void inserirPeca(struct Fila *f, int *totalCadastro)
     f->pecas[f->fim] = gerarPeca(totalCadastro);
     f->fim = (f->fim + 1) % max_peca;
     f->totalPecas++;
+    mostrarPilha(p);
     mostrarFila(f);
 }
 
-/* FunÁ„o para jogar peÁa da fila */
-void jogarPeca(struct Fila *f,int *totalCadastro)
+/* Fun√ß√£o para jogar pe√ßa da fila */
+void jogarPeca(struct Fila *f, struct Pilha *p,int *totalCadastro)
 {
     if (f->totalPecas == 0)
     {
@@ -101,24 +133,69 @@ void jogarPeca(struct Fila *f,int *totalCadastro)
     (*totalCadastro)--;
     f->inicio = (f->inicio + 1) % max_peca;
     f->totalPecas--;
+    mostrarPilha(p);
+    mostrarFila(f);
+}
+
+/* Fun√ß√£o para mover pe√ßa para reserva */
+void reservarPeca(struct Pilha *p, struct Fila *f, int *totalCadastro)
+{
+    if(f->totalPecas == 0)
+    {
+        printf("Fila vazia!\n");
+        return;
+    }
+    if(p->totalPecasReservadas == 3)
+    {
+        printf("\nReserva cheia!\n");
+        return;
+    }
+
+    p->topo++;
+    p->pecas[p->topo] = f->pecas[f->inicio];
+    p->totalPecasReservadas++;
+    (*totalCadastro)--;
+    f->inicio = (f->inicio + 1) % max_peca;
+    f->totalPecas--;
+    mostrarPilha(p);
+    mostrarFila(f);
+}
+
+/* Fun√ß√£o para jogar pe√ßa da reserva */
+void usarReserva(struct Pilha *p, struct Fila *f)
+{
+    if(p->totalPecasReservadas == 0)
+    {
+        printf("\nReserva vazia!\n");
+        return;
+    }
+
+    p->topo--;
+    p->totalPecasReservadas--;
+
+    mostrarPilha(p);
     mostrarFila(f);
 }
 
 int main()
 {
     struct Fila fila;
+    struct Pilha pilha;
     int opcao;
-    int totalCadastro;
+    int totalCadastro = 0;
 
     iniciarFila(&fila);
+    iniciarPilha(&pilha);
 
-    /* Montando menu de InteraÁ„o com o invent·rio */
+    /* Montando menu de Intera√ß√£o com o invent√°rio */
     do
     {
         opcao = 0;
         printf("\n----Menu de Interacao----\n\n");
         printf("1 - Jogar peca\n");
         printf("2 - Inserir nova peca\n");
+        printf("3 - Reservar peca\n");
+        printf("4 - Usar peca reservada\n");
         printf("0 - Sair\n");
         printf("Escolha uma opcao: ");
         scanf("%d",&opcao);
@@ -127,11 +204,16 @@ int main()
         switch (opcao)
         {
         case 1:
-            jogarPeca(&fila, &totalCadastro);
-            break;
+            jogarPeca(&fila, &pilha, &totalCadastro);
             break;
         case 2:
-            inserirPeca(&fila, &totalCadastro);
+            inserirPeca(&fila, &pilha, &totalCadastro);
+            break;
+        case 3:
+            reservarPeca(&pilha,&fila,&totalCadastro);
+            break;
+        case 4:
+            usarReserva(&pilha, &fila);
             break;
         case 0:
             printf("\nSaindo...!\n");
