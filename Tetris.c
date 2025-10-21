@@ -118,8 +118,6 @@ void inserirPeca(struct Fila *f, struct Pilha *p, int *totalCadastro)
     f->pecas[f->fim] = gerarPeca(totalCadastro);
     f->fim = (f->fim + 1) % max_peca;
     f->totalPecas++;
-    mostrarPilha(p);
-    mostrarFila(f);
 }
 
 /* Função para jogar peça da fila */
@@ -133,6 +131,7 @@ void jogarPeca(struct Fila *f, struct Pilha *p,int *totalCadastro)
     (*totalCadastro)--;
     f->inicio = (f->inicio + 1) % max_peca;
     f->totalPecas--;
+    inserirPeca(f, p, totalCadastro);
     mostrarPilha(p);
     mostrarFila(f);
 }
@@ -157,6 +156,7 @@ void reservarPeca(struct Pilha *p, struct Fila *f, int *totalCadastro)
     (*totalCadastro)--;
     f->inicio = (f->inicio + 1) % max_peca;
     f->totalPecas--;
+    inserirPeca(f, p, totalCadastro);
     mostrarPilha(p);
     mostrarFila(f);
 }
@@ -177,15 +177,64 @@ void usarReserva(struct Pilha *p, struct Fila *f)
     mostrarFila(f);
 }
 
+/* Função trocar peça da fila pela peça da pilha */
+void trocarPeca(struct Pilha *p, struct Fila *f)
+{
+    if(p->totalPecasReservadas == 0)
+    {
+        printf("\nReserva vazia!\n");
+        return;
+    }
+
+    struct Peca e;
+    e = p->pecas[p->topo];
+    p->pecas[p->topo] = f->pecas[f->inicio];
+    f->pecas[f->inicio] = e;
+    mostrarPilha(p);
+    mostrarFila(f);
+}
+
+/* Função para trocar as três peças da reserva para a fila */
+void trocaMultipla(struct Pilha *p, struct Fila *f)
+{
+    if(p->totalPecasReservadas < 3)
+    {
+        printf("\nReserva com poucos elementos!\n");
+        return;
+    }
+
+    struct Peca e[max_reserva];
+    int i;
+    for(i=0;i<3;i++)
+    {
+        e[i] = p->pecas[(p->topo)-i];
+        p->pecas[(p->topo)-i] = f->pecas[((f->inicio)+2-i) % max_peca];
+
+    }
+    for(i=0;i<3;i++)
+    {
+        f->pecas[(f->inicio+i) % max_peca] = e[i];
+    }
+    mostrarPilha(p);
+    mostrarFila(f);
+}
+
 int main()
 {
     struct Fila fila;
     struct Pilha pilha;
-    int opcao;
+    int opcao, i = 0;
     int totalCadastro = 0;
 
     iniciarFila(&fila);
     iniciarPilha(&pilha);
+
+    /* Inicar jogo com 5 peças na fila */
+    for(i = 0;i < 5;i++)
+    {
+        inserirPeca(&fila, &pilha, &totalCadastro);
+    }
+    mostrarFila(&fila);
 
     /* Montando menu de Interação com o inventário */
     do
@@ -193,9 +242,10 @@ int main()
         opcao = 0;
         printf("\n----Menu de Interacao----\n\n");
         printf("1 - Jogar peca\n");
-        printf("2 - Inserir nova peca\n");
-        printf("3 - Reservar peca\n");
-        printf("4 - Usar peca reservada\n");
+        printf("2 - Reservar peca\n");
+        printf("3 - Usar peca reservada\n");
+        printf("4 - Trocar peca da frente da fila com o topo da pilha\n");
+        printf("5 - Trocar os 3 primeiros da fila com as 3 pecas da pilha\n");
         printf("0 - Sair\n");
         printf("Escolha uma opcao: ");
         scanf("%d",&opcao);
@@ -207,13 +257,16 @@ int main()
             jogarPeca(&fila, &pilha, &totalCadastro);
             break;
         case 2:
-            inserirPeca(&fila, &pilha, &totalCadastro);
-            break;
-        case 3:
             reservarPeca(&pilha,&fila,&totalCadastro);
             break;
-        case 4:
+        case 3:
             usarReserva(&pilha, &fila);
+            break;
+        case 4:
+            trocarPeca(&pilha, &fila);
+            break;
+        case 5:
+            trocaMultipla(&pilha, &fila);
             break;
         case 0:
             printf("\nSaindo...!\n");
